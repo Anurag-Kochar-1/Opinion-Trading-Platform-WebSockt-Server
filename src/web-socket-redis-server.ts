@@ -3,6 +3,7 @@ import express from "express";
 import { createClient, RedisClientType } from "redis";
 import { Server } from "http";
 import { RedisCredentials, SubscriptionMessage } from "./types";
+import { logger } from "./config/logger";
 
 let usersCount: number = 0;
 
@@ -25,21 +26,35 @@ export class WebSocketRedisServer {
     this.globalSubscriptions = new Map();
     this.clientSubscriptions = new WeakMap();
 
+    logger.info('WebSocket server initialized', { port });
     this.initializeWebSocketServer();
   }
 
   private initializeWebSocketServer(): void {
-    this.wss.on("connection", (ws: WebSocket) => {
+    this.wss.on("connection", (ws: WebSocket, req: any) => {
       usersCount++;
-      console.log(`👥 Client Connected, total users count is ${usersCount}`);
+
+      logger.info('Client connected', {
+        usersCount,
+        ip: req.socket.remoteAddress,
+        userAgent: req.headers['user-agent']
+      });
+
       this.clientSubscriptions.set(ws, new Set());
 
       ws.on("message", async (message: WebSocket.RawData) => {
         try {
           const data: SubscriptionMessage = JSON.parse(message.toString());
           await this.handleMessage(ws, data);
+          logger.debug('Message received', {
+            type: data.type,
+            stockSymbol: data.stockSymbol
+          });
         } catch (error) {
-          console.error("Error processing message:", error);
+          logger.error('Error processing message', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            raw: message.toString().substring(0, 200)
+          });
         }
       });
 
@@ -57,6 +72,8 @@ export class WebSocketRedisServer {
       await this.handleSubscription(ws, stockSymbol);
     } else if (type === "unsubscribe") {
       await this.handleUnsubscription(ws, stockSymbol);
+    } else {
+      logger.warn('Unknown message type received', { type, stockSymbol });
     }
   }
 
@@ -66,7 +83,7 @@ export class WebSocketRedisServer {
   ): Promise<void> {
     const clientSubs = this.clientSubscriptions.get(ws)!;
     if (clientSubs.has(stockSymbol)) {
-      console.log(`Client already subscribed to orderbook.${stockSymbol}`);
+      logger.debug('Duplicate subscription attempt', { stockSymbol });
       return;
     }
 
@@ -80,12 +97,17 @@ export class WebSocketRedisServer {
           this.broadcastToSubscribers(stockSymbol, message);
         }
       );
-      console.log(`Subscribed to orderbook.${stockSymbol}`);
+      logger.info('New stock subscription created', {
+        stockSymbol,
+        subscribersCount: 1
+      });
+
     } else {
       this.globalSubscriptions.get(stockSymbol)!.add(ws);
-      console.log(
-        `Added client to existing subscription for orderbook.${stockSymbol}`
-      );
+      logger.info('Client added to existing subscription', {
+        stockSymbol,
+        subscribersCount: this.globalSubscriptions.get(stockSymbol)!.size
+      });
     }
   }
 
@@ -95,7 +117,7 @@ export class WebSocketRedisServer {
   ): Promise<void> {
     const clientSubs = this.clientSubscriptions.get(ws)!;
     if (!clientSubs.has(stockSymbol)) {
-      console.log(`Client not subscribed to orderbook.${stockSymbol}`);
+      logger.debug('Unsubscribe attempt for non-subscribed stock', { stockSymbol });
       return;
     }
 
@@ -107,11 +129,13 @@ export class WebSocketRedisServer {
     if (globalSubs.size === 0) {
       await this.redisClient.unsubscribe(`orderbook.${stockSymbol}`);
       this.globalSubscriptions.delete(stockSymbol);
-      console.log(`Unsubscribed from orderbook.${stockSymbol}`);
+      logger.info('Stock subscription removed', { stockSymbol });
     } else {
-      console.log(
-        `Removed client from subscription for orderbook.${stockSymbol}`
-      );
+      logger.info('Client removed from subscription', {
+        stockSymbol,
+        remainingSubscribers: globalSubs.size
+      });
+
     }
   }
   private broadcastToSubscribers(stockSymbol: string, message: string): void {
@@ -122,16 +146,33 @@ export class WebSocketRedisServer {
         stockSymbol,
         message,
       };
+      let successCount = 0;
+      let failCount = 0;
+
       subscribers.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify(data));
+          successCount++
+        } else {
+          failCount++;
         }
       });
+      logger.debug('Broadcast completed', {
+        stockSymbol,
+        successCount,
+        failCount,
+        totalSubscribers: subscribers.size
+      });
+
     }
   }
 
   private handleClientDisconnection(ws: WebSocket): void {
-    console.log("Client disconnected");
+    usersCount--
+    logger.info('Client disconnected', {
+      remainingUsers: usersCount,
+      subscriptionsCount: this.clientSubscriptions.get(ws)?.size || 0
+    });
     const clientSubs = this.clientSubscriptions.get(ws);
     if (clientSubs) {
       clientSubs.forEach((stockSymbol) => {
@@ -145,9 +186,13 @@ export class WebSocketRedisServer {
     try {
       await this.redisClient.connect();
       await this.redisPublisher.connect();
-      console.log("Connected to Redis");
+      logger.info('Redis connections established');
     } catch (error) {
-      console.error("Failed to connect to Redis", error);
+      logger.error('Failed to connect to Redis', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      throw error;
     }
   }
 }

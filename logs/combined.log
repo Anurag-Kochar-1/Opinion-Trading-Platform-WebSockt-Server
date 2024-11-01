@@ -1,0 +1,8 @@
+{"level":"info","message":"WebSocket server initialized","port":5000,"service":"websocket-service","timestamp":"2024-11-02 02:59:43"}
+{"level":"info","message":"Redis connections established","service":"websocket-service","timestamp":"2024-11-02 02:59:43"}
+{"level":"info","message":"WebSocket server initialized","port":5000,"service":"websocket-service","timestamp":"2024-11-02 02:59:44"}
+{"level":"info","message":"Redis connections established","service":"websocket-service","timestamp":"2024-11-02 02:59:44"}
+{"ip":"::1","level":"info","message":"Client connected","service":"websocket-service","timestamp":"2024-11-02 03:00:46","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0","usersCount":1}
+{"level":"info","message":"New stock subscription created","service":"websocket-service","stockSymbol":"TESLA","subscribersCount":1,"timestamp":"2024-11-02 03:01:32"}
+{"level":"debug","message":"Message received","service":"websocket-service","stockSymbol":"TESLA","timestamp":"2024-11-02 03:01:32","type":"subscribe"}
+{"failCount":0,"level":"debug","message":"Broadcast completed","service":"websocket-service","stockSymbol":"TESLA","successCount":1,"timestamp":"2024-11-02 03:01:47","totalSubscribers":1}

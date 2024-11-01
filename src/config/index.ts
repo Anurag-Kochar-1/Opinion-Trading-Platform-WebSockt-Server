@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { RedisCredentials } from "./types";
+import { RedisCredentials } from "../types";
 
 dotenv.config();
 
