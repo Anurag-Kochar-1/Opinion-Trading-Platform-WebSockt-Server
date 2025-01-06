@@ -26,7 +26,7 @@ export class WebSocketRedisServer {
     this.globalSubscriptions = new Map();
     this.clientSubscriptions = new WeakMap();
 
-    logger.info('WebSocket server initialized', { port });
+    logger.info('WS server initialized', { port });
     this.initializeWebSocketServer();
   }
 
