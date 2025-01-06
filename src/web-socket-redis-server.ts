@@ -16,9 +16,9 @@ export class WebSocketRedisServer {
   private globalSubscriptions: Map<string, Set<WebSocket>>;
   private clientSubscriptions: WeakMap<WebSocket, Set<string>>;
 
-  constructor(port: number, redisCredentials: RedisCredentials) {
+  constructor(port: number, redisCredentials: RedisCredentials) { 
     this.app = express();
-    this.httpServer = this.app.listen(port);
+    this.httpServer = this.app.listen(port, "0.0.0.0");
     this.wss = new WebSocketServer({ server: this.httpServer });
     this.redisClient = createClient(redisCredentials);
     this.redisPublisher = createClient(redisCredentials);

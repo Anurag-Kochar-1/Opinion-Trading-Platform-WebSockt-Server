@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "npx tsx --env-file=.env --watch src/index.ts"
+    "start": "npx tsx --env-file=.env --watch src/index.ts",
+    "build": "npx tsc",
+    "prod:start": "node dist/index.js"
   },
   "keywords": [],
   "author": "",
