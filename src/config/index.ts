@@ -3,7 +3,8 @@ import { RedisCredentials } from "../types";
 
 dotenv.config();
 
-export const PORT = process.env.WS_PORT ? parseInt(process.env.WS_PORT, 10) : 5000;
+// export const PORT = process.env.WS_PORT ? parseInt(process.env.WS_PORT, 10) : 5000;
+export const PORT = 5000;
 
 export const REDIS_CREDENTIALS: RedisCredentials = {
   url: process.env.REDIS_URL || "",
